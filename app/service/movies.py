@@ -1,5 +1,4 @@
 import math
-import re
 
 from app.common.cursor import decode_cursor, encode_cursor
 from app.models.movie import COLLECTION, serialize
@@ -11,7 +10,13 @@ SORT_FIELDS = {
 }
 
 
-def list_movies(database, *, page, page_size, year, language, sort_by, sort_order, after=None):
+def list_languages(database):
+    """Distinct languages present in the data, sorted for filter dropdowns."""
+    values = database[COLLECTION].distinct("languages")
+    return sorted(value for value in values if value)
+
+
+def list_movies(database, *, page, page_size, year, languages, sort_by, sort_order, after=None):
     """Return a page of movies, filtered and sorted.
 
     Two pagination modes share the same sort:
@@ -24,7 +29,7 @@ def list_movies(database, *, page, page_size, year, language, sort_by, sort_orde
     direction, backed by an index on the precomputed null flag.
     """
     collection = database[COLLECTION]
-    base_query = _build_query(year, language)
+    base_query = _build_query(year, languages)
     sort_keys = _sort_keys(sort_by, sort_order)
 
     if after is not None:
@@ -61,15 +66,14 @@ def _keyset_page(collection, base_query, sort_keys, page_size, cursor_values):
     }
 
 
-def _build_query(year, language):
+def _build_query(year, languages):
     query = {}
     if year is not None:
         query["year"] = year
-    if language:
-        # Match either the language code (original_language) or a readable
-        # name in the languages list, both case-insensitively.
-        pattern = re.compile(f"^{re.escape(language)}$", re.IGNORECASE)
-        query["$or"] = [{"original_language": pattern}, {"languages": pattern}]
+    if languages:
+        # AND semantics: a movie must list every selected language. The values
+        # come from the dataset's own language list, so an exact match is used.
+        query["languages"] = {"$all": languages}
     return query
 
 

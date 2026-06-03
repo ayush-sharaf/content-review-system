@@ -5,7 +5,7 @@ from app.common.params import parse_list_params
 from app.common.responses import success
 from app.db import get_db
 from app.service.csv_import import import_csv
-from app.service.movies import list_movies
+from app.service.movies import list_languages, list_movies
 
 movies_bp = Blueprint("movies", __name__, url_prefix="/api/v1/movies")
 
@@ -21,6 +21,12 @@ def upload_movies():
 
     result = import_csv(file.stream, get_db(), current_app.config["UPLOAD_BATCH_SIZE"])
     return success(result, status=201)
+
+
+@movies_bp.get("/languages")
+def list_languages_route():
+    """Return the distinct languages in the data, for the filter dropdown."""
+    return success(list_languages(get_db()))
 
 
 @movies_bp.get("")

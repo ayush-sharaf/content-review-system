@@ -84,6 +84,27 @@
     .pager .info { color: var(--muted); font-size: 13px; }
     .pager .controls { display: flex; gap: 8px; align-items: center; }
     .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+    /* Multiselect dropdown */
+    .ms { position: relative; }
+    .ms-control {
+      min-width: 180px; height: 36px; padding: 0 12px;
+      border: 1px solid #d9d9d9; border-radius: 6px; background: #fff;
+      font-size: 14px; color: var(--text); text-align: left; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .ms-control:hover { border-color: var(--primary); }
+    .ms-control .caret { color: var(--muted); font-size: 11px; }
+    .ms-control.placeholder { color: #9aa1b1; }
+    .ms-panel {
+      position: absolute; z-index: 10; top: 40px; left: 0;
+      min-width: 220px; max-height: 260px; overflow-y: auto;
+      background: #fff; border: 1px solid var(--border); border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .12); padding: 6px; display: none;
+    }
+    .ms-panel.open { display: block; }
+    .ms-opt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; font-size: 14px; cursor: pointer; }
+    .ms-opt:hover { background: var(--row-hover); }
+    .ms-opt input { height: auto; }
   </style>
 </head>
 <body>
@@ -113,8 +134,14 @@
           <input type="number" id="year" placeholder="e.g. 1995" />
         </div>
         <div class="field">
-          <label for="language">Language</label>
-          <input type="text" id="language" placeholder="e.g. English" />
+          <label>Language</label>
+          <div class="ms">
+            <button type="button" class="ms-control placeholder" id="langControl">
+              <span id="langLabel">All languages</span>
+              <span class="caret">▼</span>
+            </button>
+            <div class="ms-panel" id="langPanel"></div>
+          </div>
         </div>
         <div class="field">
           <label for="sortBy">Sort by</label>
@@ -177,17 +204,52 @@
     const $ = (id) => document.getElementById(id);
     const dash = (v) => (v === null || v === undefined || v === "" ? '<span class="muted">—</span>' : v);
 
+    function selectedLanguages() {
+      return [...document.querySelectorAll("#langPanel input:checked")].map((c) => c.value);
+    }
+
     function buildQuery() {
       const params = new URLSearchParams();
       params.set("page", page);
       params.set("page_size", $("pageSize").value);
       if ($("year").value.trim()) params.set("year", $("year").value.trim());
-      if ($("language").value.trim()) params.set("language", $("language").value.trim());
+      for (const lang of selectedLanguages()) params.append("language", lang);
       if ($("sortBy").value) {
         params.set("sort_by", $("sortBy").value);
         params.set("sort_order", $("sortOrder").value);
       }
       return params.toString();
+    }
+
+    function updateLangLabel() {
+      const selected = selectedLanguages();
+      const label = $("langLabel");
+      const control = $("langControl");
+      if (!selected.length) {
+        label.textContent = "All languages";
+        control.classList.add("placeholder");
+      } else {
+        label.textContent = selected.length === 1 ? selected[0] : `${selected.length} selected`;
+        control.classList.remove("placeholder");
+      }
+    }
+
+    async function loadLanguages() {
+      try {
+        const body = await (await fetch(`${API}/languages`)).json();
+        if (!body.success) return;
+        const panel = $("langPanel");
+        panel.innerHTML = "";
+        for (const lang of body.data) {
+          const opt = document.createElement("label");
+          opt.className = "ms-opt";
+          opt.innerHTML = `<input type="checkbox" value="${lang}" /> ${lang}`;
+          opt.querySelector("input").addEventListener("change", updateLangLabel);
+          panel.appendChild(opt);
+        }
+      } catch (_err) {
+        /* dropdown stays empty if languages cannot be loaded */
+      }
     }
 
     function renderRows(items) {
@@ -256,6 +318,16 @@
     $("prevBtn").addEventListener("click", () => { if (page > 1) { page--; loadMovies(); } });
     $("nextBtn").addEventListener("click", () => { page++; loadMovies(); });
 
+    // Toggle the language panel and close it on an outside click.
+    $("langControl").addEventListener("click", (e) => {
+      e.stopPropagation();
+      $("langPanel").classList.toggle("open");
+    });
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#langPanel")) $("langPanel").classList.remove("open");
+    });
+
+    loadLanguages();
     loadMovies();
   </script>
 </body>

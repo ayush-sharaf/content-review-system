@@ -1,2 +1,3 @@
 p, default_role, /api/v1/movies, (GET)
+p, default_role, /api/v1/movies/languages, (GET)
 p, default_role, /api/v1/movies/upload, (POST)

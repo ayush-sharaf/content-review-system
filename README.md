@@ -140,7 +140,7 @@ GET /api/v1/movies
 | `page`       | Page number, default `1`                             |
 | `page_size`  | Items per page, default `20`, capped at `100`        |
 | `year`       | Filter by year of release                            |
-| `language`   | Filter by language code (`en`) or name (`English`)   |
+| `language`   | Filter by language; repeat the param to require all of them (AND) |
 | `sort_by`    | `release_date` or `rating`                           |
 | `sort_order` | `asc` or `desc`, default `asc`                        |
 | `after`      | Keyset cursor for deep pagination (see below)        |
@@ -153,7 +153,21 @@ deliberate choice: the records are still included in the results and in
 ones.
 
 ```bash
-curl "http://localhost:5000/api/v1/movies?year=1995&language=English&sort_by=rating&sort_order=desc"
+# movies that are in BOTH English and Français
+curl "http://localhost:5000/api/v1/movies?language=English&language=Fran%C3%A7ais&sort_by=rating&sort_order=desc"
+```
+
+### List languages
+
+Returns the distinct languages present in the data, sorted — used to populate
+the filter dropdown.
+
+```
+GET /api/v1/movies/languages
+```
+
+```json
+{ "success": true, "data": ["English", "Español", "Français", "..."] }
 ```
 
 Response:
@@ -218,6 +232,24 @@ These choices follow established guidance on sorting and pagination at scale:
 - [Fast and efficient pagination in MongoDB (keyset on the sort key + `_id`)](https://www.codementor.io/@arpitbhayani/fast-and-efficient-pagination-in-mongodb-9095flbqr)
 - [MongoDB pagination, fast and consistent (offset vs keyset)](https://medium.com/swlh/mongodb-pagination-fast-consistent-ece2a97070f3)
 - [Optimizing MongoDB pagination](https://scalegrid.io/blog/mongodb-pagination/)
+
+## UX decisions
+
+A few behaviours are deliberate product choices rather than incidental:
+
+- **Language filter is multi-select with AND semantics.** The options are pulled
+  from the data itself (`/api/v1/movies/languages`). Selecting one language
+  shows movies in that language; selecting a second narrows the list to movies
+  available in *both* (their intersection), not the union. This matches how a
+  content team thinks — "show me titles I can ship in English and Spanish."
+- **A rating only counts when the movie has votes.** Many records carry a
+  `0.0` average simply because they have zero votes — that is "unrated", not a
+  genuine low score. So a movie with no votes is treated the same as a missing
+  rating and sorted to the end (in both directions), instead of polluting the
+  top of an ascending sort. A `0.0` backed by real votes is kept as a true low
+  score.
+- **Empty sort values always sort last.** See
+  [Pagination, sorting and scale](#pagination-sorting-and-scale).
 
 ## Testing
 

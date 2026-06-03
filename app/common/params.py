@@ -18,7 +18,7 @@ def parse_list_params(args, default_page_size, max_page_size):
         "page": _int_param(args, "page", 1, minimum=1),
         "page_size": _int_param(args, "page_size", default_page_size, minimum=1, maximum=max_page_size),
         "year": _optional_int(args, "year"),
-        "language": _optional_str(args, "language"),
+        "languages": _string_list(args, "language"),
         "sort_by": sort_by,
         "sort_order": sort_order,
         "after": _optional_str(args, "after"),
@@ -49,3 +49,14 @@ def _optional_int(args, name):
 def _optional_str(args, name):
     raw = args.get(name)
     return raw.strip() if raw and raw.strip() else None
+
+
+def _string_list(args, name):
+    """Collect repeated or comma-separated values into a de-duplicated list."""
+    values = []
+    for raw in args.getlist(name):
+        for part in raw.split(","):
+            part = part.strip()
+            if part and part not in values:
+                values.append(part)
+    return values

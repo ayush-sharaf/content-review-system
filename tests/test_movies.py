@@ -64,6 +64,36 @@ def test_filter_by_language_matches_readable_name(client):
     assert titles == {"Jumanji", "Amelie"}
 
 
+def test_filter_by_multiple_languages_requires_all(client):
+    _upload(client)
+    # Only Jumanji lists both English and Français.
+    response = client.get("/api/v1/movies?language=English&language=Français")
+    titles = {item["title"] for item in response.get_json()["data"]["items"]}
+    assert titles == {"Jumanji"}
+
+
+def test_languages_endpoint_returns_distinct_sorted(client):
+    _upload(client)
+    languages = client.get("/api/v1/movies/languages").get_json()["data"]
+    assert languages == ["English", "Français"]
+
+
+def test_zero_vote_rating_sorts_last_like_null(client):
+    rows = [
+        "0,,en,Rated,a movie,2001-01-01,0,90,Released,Rated,6.0,100,1,18,['English']",
+        "0,,en,Unrated,a movie,2002-01-01,0,90,Released,Unrated,9.0,0,1,18,['English']",
+    ]
+    body = "\n".join([CSV_HEADER, *rows])
+    data = {"file": (io.BytesIO(body.encode("utf-8")), "movies.csv")}
+    client.post("/api/v1/movies/upload", data=data, content_type="multipart/form-data")
+
+    # Unrated has a higher average but zero votes, so it must sort last either way.
+    for order in ("asc", "desc"):
+        response = client.get(f"/api/v1/movies?sort_by=rating&sort_order={order}")
+        titles = [item["title"] for item in response.get_json()["data"]["items"]]
+        assert titles[-1] == "Unrated", f"zero-vote rating should sort last for {order}"
+
+
 def test_sort_by_rating_descending(client):
     _upload(client)
     response = client.get("/api/v1/movies?sort_by=rating&sort_order=desc")

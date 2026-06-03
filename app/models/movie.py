@@ -14,6 +14,7 @@ def parse_row(raw):
 
     release_date = _parse_date(raw.get("release_date"))
     vote_average = _to_float(raw.get("vote_average"))
+    vote_count = _to_int(raw.get("vote_count"))
     return {
         "title": title,
         "original_title": _clean(raw.get("original_title")),
@@ -28,13 +29,15 @@ def parse_row(raw):
         "revenue": _to_float(raw.get("revenue")),
         "runtime": _to_int(raw.get("runtime")),
         "vote_average": vote_average,
-        "vote_count": _to_int(raw.get("vote_count")),
+        "vote_count": vote_count,
         "production_company_id": _to_int(raw.get("production_company_id")),
         "genre_id": _to_int(raw.get("genre_id")),
         # Precomputed at write time so sorts can push empty values last using
-        # an index, instead of an in-memory sort on a computed field.
+        # an index, instead of an in-memory sort on a computed field. A rating
+        # only counts as real when the movie actually has votes: a 0.0 average
+        # from 0 votes is "unrated", not a genuine low score.
         "has_release_date": release_date is not None,
-        "has_rating": vote_average is not None,
+        "has_rating": vote_average is not None and bool(vote_count),
     }
 
 
