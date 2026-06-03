@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "Content Review System",
+    "description": "CSV upload and movie listing APIs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+      }
+    },
+    {
+      "name": "Upload movies CSV",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "X-Role", "value": "default_role" }],
+        "body": {
+          "mode": "formdata",
+          "formdata": [{ "key": "file", "type": "file", "src": "" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/movies/upload",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "movies", "upload"]
+        },
+        "description": "Attach the movies CSV file to the 'file' form field before sending."
+      }
+    },
+    {
+      "name": "List movies",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-Role", "value": "default_role" }],
+        "url": {
+          "raw": "{{base_url}}/api/v1/movies?page=1&page_size=20&year=1995&language=English&sort_by=release_date&sort_order=desc",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "movies"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "page_size", "value": "20" },
+            { "key": "year", "value": "1995" },
+            { "key": "language", "value": "English" },
+            { "key": "sort_by", "value": "release_date" },
+            { "key": "sort_order", "value": "desc" }
+          ]
+        }
+      }
+    }
+  ]
+}
