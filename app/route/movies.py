@@ -36,4 +36,8 @@ def list_movies_route():
         current_app.config["DEFAULT_PAGE_SIZE"],
         current_app.config["MAX_PAGE_SIZE"],
     )
-    return success(list_movies(get_db(), **params))
+    try:
+        return success(list_movies(get_db(), **params))
+    except ValueError:
+        # Raised only when an `after` cursor cannot be decoded.
+        raise ApiError("Invalid pagination cursor")

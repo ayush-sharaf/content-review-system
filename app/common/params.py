@@ -21,6 +21,7 @@ def parse_list_params(args, default_page_size, max_page_size):
         "language": _optional_str(args, "language"),
         "sort_by": sort_by,
         "sort_order": sort_order,
+        "after": _optional_str(args, "after"),
     }
 
 

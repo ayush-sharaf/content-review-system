@@ -13,6 +13,7 @@ def parse_row(raw):
         return None
 
     release_date = _parse_date(raw.get("release_date"))
+    vote_average = _to_float(raw.get("vote_average"))
     return {
         "title": title,
         "original_title": _clean(raw.get("original_title")),
@@ -26,15 +27,25 @@ def parse_row(raw):
         "budget": _to_float(raw.get("budget")),
         "revenue": _to_float(raw.get("revenue")),
         "runtime": _to_int(raw.get("runtime")),
-        "vote_average": _to_float(raw.get("vote_average")),
+        "vote_average": vote_average,
         "vote_count": _to_int(raw.get("vote_count")),
         "production_company_id": _to_int(raw.get("production_company_id")),
         "genre_id": _to_int(raw.get("genre_id")),
+        # Precomputed at write time so sorts can push empty values last using
+        # an index, instead of an in-memory sort on a computed field.
+        "has_release_date": release_date is not None,
+        "has_rating": vote_average is not None,
     }
+
+
+# Internal sort helpers that should not leak into API responses.
+_INTERNAL_FIELDS = ("has_release_date", "has_rating")
 
 
 def serialize(doc):
     """Make a stored document JSON friendly for API responses."""
+    for field in _INTERNAL_FIELDS:
+        doc.pop(field, None)
     doc["_id"] = str(doc["_id"])
     release_date = doc.get("release_date")
     if isinstance(release_date, datetime):

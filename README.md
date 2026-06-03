@@ -7,8 +7,10 @@ file and browse it through a paginated, filterable and sortable API.
 
 - **CSV upload** that streams rows into MongoDB in batches, so files up to 1GB
   are never loaded fully into memory.
-- **Movie listing** with pagination, filtering by year of release and language,
-  and sorting by release date or rating (ascending and descending).
+- **Movie listing** with filtering by year of release and language, and sorting
+  by release date or rating (ascending and descending). Sorts are index-backed
+  and push empty values last; both offset and keyset (cursor) pagination are
+  supported. See [Pagination, sorting and scale](#pagination-sorting-and-scale).
 - Casbin-based authorization driven by a `model.conf` / `policy.csv` pair.
 
 ## Architecture
@@ -131,6 +133,7 @@ GET /api/v1/movies
 | `language`   | Filter by language code (`en`) or name (`English`)   |
 | `sort_by`    | `release_date` or `rating`                           |
 | `sort_order` | `asc` or `desc`, default `asc`                        |
+| `after`      | Keyset cursor for deep pagination (see below)        |
 
 **Sorting and empty values:** part of the source data has no `release_date`
 (and some no `rating`). When sorting by such a field, those records are always
@@ -153,10 +156,47 @@ Response:
     "page": 1,
     "page_size": 20,
     "total": 2,
-    "total_pages": 1
+    "total_pages": 1,
+    "next_cursor": "W3sidCI6ImJvb2wi...",
+    "has_more": false
   }
 }
 ```
+
+## Pagination, sorting and scale
+
+The CSV can be up to 1GB, so the list endpoint is built to stay fast as the
+collection grows. The decisions below are deliberate.
+
+**Sorting is index-backed, empty values last.** MongoDB has no native
+`NULLS LAST`, and sorting on a value computed at query time forces a blocking
+in-memory sort (capped at 100MB). Instead, a boolean flag (`has_release_date`,
+`has_rating`) is computed once at upload time and indexed alongside the sort
+field. The sort `{flag desc, field, _id}` is served entirely by an index
+(`IXSCAN`, no `SORT` stage), and records with no value land last in both
+directions while remaining in the results and the count.
+
+**Two pagination modes, same sort.**
+
+- *Offset* (default) — `page` / `page_size`, returns `total` and `total_pages`.
+  Best for the CRM's page-number UI. `skip` cost grows with depth, so it is
+  meant for shallow page jumps; `page_size` is capped at 100.
+- *Keyset* (cursor) — pass `after=<next_cursor>` from the previous response to
+  seek past the last seen record. Each page is an indexed lookup, so it stays
+  fast at any depth. Use it for deep traversal or exporting the whole set.
+
+```bash
+# page 1
+curl "http://localhost:5000/api/v1/movies?sort_by=rating&sort_order=desc&page_size=50"
+# page 2 onward: feed back next_cursor
+curl "http://localhost:5000/api/v1/movies?sort_by=rating&sort_order=desc&page_size=50&after=<next_cursor>"
+```
+
+Every response includes `next_cursor` and `has_more`, so a client can start on
+offset and switch to keyset without changing the sort. Trade-off: keyset has no
+"jump to page N" — that is what offset is for. The exact `total` count is only
+computed in offset mode, since counting the full collection on every keyset page
+would defeat the purpose.
 
 ## Testing
 

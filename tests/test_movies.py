@@ -87,6 +87,48 @@ def test_records_without_release_date_sort_last(client):
         assert titles[-1] == "No Date", f"null date should sort last for {order}"
 
 
+def test_keyset_pagination_walks_every_record_once(client):
+    _upload(client)  # 3 valid movies
+    seen = []
+    after = None
+    for _ in range(10):  # generous guard against a runaway loop
+        url = "/api/v1/movies?sort_by=rating&sort_order=desc&page_size=1"
+        if after:
+            url += f"&after={after}"
+        data = client.get(url).get_json()["data"]
+        seen.extend(item["title"] for item in data["items"])
+        after = data["next_cursor"]
+        if not after:
+            break
+
+    assert len(seen) == 3
+    assert len(set(seen)) == 3  # no repeats, no gaps
+
+
+def test_keyset_matches_offset_ordering(client):
+    _upload(client)
+    offset = [i["title"] for i in client.get("/api/v1/movies?sort_by=rating&sort_order=desc").get_json()["data"]["items"]]
+
+    first = client.get("/api/v1/movies?sort_by=rating&sort_order=desc&page_size=2").get_json()["data"]
+    nxt = client.get(f"/api/v1/movies?sort_by=rating&sort_order=desc&page_size=2&after={first['next_cursor']}").get_json()["data"]
+    keyset = [i["title"] for i in first["items"]] + [i["title"] for i in nxt["items"]]
+
+    assert keyset == offset
+
+
+def test_bad_cursor_is_rejected(client):
+    response = client.get("/api/v1/movies?sort_by=rating&after=not-a-real-cursor")
+    assert response.status_code == 400
+    assert response.get_json()["success"] is False
+
+
+def test_internal_sort_flags_are_not_exposed(client):
+    _upload(client)
+    item = client.get("/api/v1/movies?page_size=1").get_json()["data"]["items"][0]
+    assert "has_release_date" not in item
+    assert "has_rating" not in item
+
+
 def test_invalid_sort_by_is_rejected(client):
     response = client.get("/api/v1/movies?sort_by=budget")
     assert response.status_code == 400
