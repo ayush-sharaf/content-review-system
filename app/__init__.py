@@ -1,8 +1,10 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify
 
+from app.common.errors import register_error_handlers
 from app.config import Config
 from app.db import init_db
+from app.route import register_routes
 
 
 def create_app(config=None):
@@ -12,6 +14,8 @@ def create_app(config=None):
     app.config.from_object(config or Config)
 
     init_db(app)
+    register_routes(app)
+    register_error_handlers(app)
 
     @app.get("/health")
     def health():
