@@ -103,6 +103,10 @@ upload control and a paginated, filterable, sortable list view. Because it is
 served from the same origin as the API, it works the same whether you run via
 Docker or run MongoDB and the backend separately; no extra setup is needed.
 
+Two small UI behaviours worth noting: the list opens sorted by **release date,
+descending** (newest first) by default, and the **Apply** button stays disabled
+until a filter actually changes, so it never fires a redundant request.
+
 ## API
 
 All movie endpoints sit under `/api/v1/movies` and expect an `X-Role` header
@@ -137,7 +141,10 @@ Response:
 { "success": true, "data": { "inserted": 45000, "skipped": 12 } }
 ```
 
-Rows without a title are skipped and reported in `skipped`.
+Rows without a title are skipped and reported in `skipped`. The file is decoded
+leniently (a stray non-UTF-8 byte is replaced rather than aborting the whole
+import), so one bad byte never fails a large upload; a structurally invalid file
+(e.g. a binary file) returns a `400`, not a `500`.
 
 ### List movies
 
@@ -208,7 +215,10 @@ in-memory sort (capped at 100MB). Instead, a boolean flag (`has_release_date`,
 `has_rating`) is computed once at upload time and indexed alongside the sort
 field. The sort `{flag desc, field, _id}` is served entirely by an index
 (`IXSCAN`, no `SORT` stage), and records with no value land last in both
-directions while remaining in the results and the count.
+directions while remaining in the results and the count. Each sortable field is
+indexed in both directions, because an index serves a sort only in its own order
+or its exact reverse — supporting nulls-last ascending *and* descending needs
+the two.
 
 **Two pagination modes, same sort.**
 
@@ -288,6 +298,10 @@ The main engineering choices, in one place:
   and strict query-parameter validation.
 - **Authorization via casbin** (`model.conf` + `policy.csv`); the caller role is
   read from an `X-Role` header for demonstration.
+- **Resilient ingestion.** Uploads decode leniently so a stray byte never aborts
+  a large import, and structurally broken files return `400` rather than `500`.
+- **Operational health.** `/health` verifies MongoDB and fails fast (a 5s
+  server-selection timeout) instead of hanging when the database is down.
 
 ## Possible improvements
 
