@@ -260,6 +260,48 @@ A few behaviours are deliberate product choices rather than incidental:
 - **Empty sort values always sort last.** See
   [Pagination, sorting and scale](#pagination-sorting-and-scale).
 
+## Design decisions
+
+The main engineering choices, in one place:
+
+- **Layered structure.** Thin routes delegate to a service layer, with models
+  and a casbin policy kept separate, so handlers stay readable and the logic is
+  testable on its own.
+- **Streaming, batched import.** The CSV is read row by row and inserted in
+  batches, so a 1GB upload never has to sit in memory.
+- **Write-time precomputation.** Null-sort flags (`has_release_date`,
+  `has_rating`), a derived `year`, and the language facet are all computed once
+  on upload so reads stay cheap and index-backed.
+- **Index-backed sorting, empty values last**, with offset *and* keyset
+  pagination — see [Pagination, sorting and scale](#pagination-sorting-and-scale).
+- **Standard response envelope** (`{ success, data }` / `{ success, error }`)
+  and strict query-parameter validation.
+- **Authorization via casbin** (`model.conf` + `policy.csv`); the caller role is
+  read from an `X-Role` header for demonstration.
+
+## Possible improvements
+
+Conscious trade-offs and where this would go next:
+
+- **A stable movie id for idempotent uploads.** The source CSV has no unique
+  key, so re-uploading the same file inserts duplicate documents. Introducing a
+  stable identifier — ideally the source's own movie id (e.g. a TMDB/IMDb id),
+  or failing that a deterministic natural key such as normalised
+  `title + release_date` — would let the importer do an **upsert**
+  (`bulk_write` with `update_one(..., upsert=True)`) keyed on it. Re-uploads
+  would then update existing records instead of duplicating them, and the
+  language facet and counts would stay correct across re-imports.
+- **Facet rebuild on delete.** The language facet only accumulates today, which
+  is correct because records are never removed. Adding delete support would
+  require rebuilding (or reference-counting) the facet.
+- **Contextual / faceted filtering** (language counts within the current
+  filters) is better served by a search engine such as Atlas Search or
+  Elasticsearch than by scaling a filtered `distinct`.
+- **Targeted compound indexes** (full ESR coverage) for any specific
+  filter-plus-sort combination that shows up hot in profiling.
+- **Real authentication / RBAC** (JWT or Keycloak) feeding the casbin role,
+  instead of the demonstration `X-Role` header.
+
 ## Testing
 
 Integration tests run against an in-memory MongoDB (`mongomock`), so no database
