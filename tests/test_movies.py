@@ -23,7 +23,9 @@ def _upload(client):
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.get_json() == {"status": "ok"}
+    body = response.get_json()
+    assert body["status"] == "ok"
+    assert body["db"] == "ok"
 
 
 def test_index_page_is_served(client):
@@ -37,6 +39,23 @@ def test_upload_skips_rows_without_title(client):
     assert response.status_code == 201
     body = response.get_json()["data"]
     assert body == {"inserted": 3, "skipped": 1}
+
+
+def test_upload_does_not_crash_on_binary(client):
+    # Lenient decoding: garbage bytes must not 500; they yield no valid rows.
+    data = {"file": (io.BytesIO(b"\xff\xfe\x00not a csv\xff"), "bad.csv")}
+    response = client.post("/api/v1/movies/upload", data=data, content_type="multipart/form-data")
+    assert response.status_code == 201
+    assert response.get_json()["data"]["inserted"] == 0
+
+
+def test_upload_tolerates_non_utf8_bytes(client):
+    # A Latin-1 encoded accented title decodes leniently instead of erroring.
+    row = "title,release_date,vote_count,vote_average,languages\nCafé,2000-01-01,5,7.0,['English']\n"
+    data = {"file": (io.BytesIO(row.encode("latin-1")), "movies.csv")}
+    response = client.post("/api/v1/movies/upload", data=data, content_type="multipart/form-data")
+    assert response.status_code == 201
+    assert response.get_json()["data"]["inserted"] == 1
 
 
 def test_list_is_paginated(client):

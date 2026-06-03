@@ -19,7 +19,10 @@ def upload_movies():
     if not file.filename.lower().endswith(".csv"):
         raise ApiError("Only .csv files are supported")
 
-    result = import_csv(file.stream, get_db(), current_app.config["UPLOAD_BATCH_SIZE"])
+    try:
+        result = import_csv(file.stream, get_db(), current_app.config["UPLOAD_BATCH_SIZE"])
+    except ValueError as error:
+        raise ApiError(str(error))
     return success(result, status=201)
 
 

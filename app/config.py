@@ -7,6 +7,9 @@ class Config:
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     MONGO_DB = os.getenv("MONGO_DB", "content_review")
 
+    # Fail fast instead of hanging on the 30s default when MongoDB is unreachable.
+    MONGO_SERVER_SELECTION_TIMEOUT_MS = int(os.getenv("MONGO_SERVER_SELECTION_TIMEOUT_MS", "5000"))
+
     # Rows are inserted in batches so a 1GB upload never sits fully in memory.
     UPLOAD_BATCH_SIZE = int(os.getenv("UPLOAD_BATCH_SIZE", "5000"))
 

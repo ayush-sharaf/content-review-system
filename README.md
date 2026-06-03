@@ -108,6 +108,16 @@ Docker or run MongoDB and the backend separately; no extra setup is needed.
 All movie endpoints sit under `/api/v1/movies` and expect an `X-Role` header
 (defaults to `default_role`, which the bundled policy allows).
 
+### Health
+
+```
+GET /health
+```
+
+Returns `200 {"status": "ok", "db": "ok"}` when MongoDB is reachable, and
+`503 {"status": "degraded", "db": "down"}` otherwise. The DB check fails fast
+(5s, configurable via `MONGO_SERVER_SELECTION_TIMEOUT_MS`) rather than hanging.
+
 ### Upload a CSV
 
 ```

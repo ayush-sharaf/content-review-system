@@ -6,7 +6,10 @@ from app.models.movie import COLLECTION
 
 def init_db(app):
     """Connect to MongoDB and make the database available on the app."""
-    client = MongoClient(app.config["MONGO_URI"])
+    client = MongoClient(
+        app.config["MONGO_URI"],
+        serverSelectionTimeoutMS=app.config["MONGO_SERVER_SELECTION_TIMEOUT_MS"],
+    )
     database = client[app.config["MONGO_DB"]]
     app.config["DB_CLIENT"] = client
     app.config["DB"] = database

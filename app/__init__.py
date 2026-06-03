@@ -2,11 +2,12 @@ import os
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, send_from_directory
+from pymongo.errors import PyMongoError
 
 from app.casbin.enforcer import build_enforcer
 from app.common.errors import register_error_handlers
 from app.config import Config
-from app.db import init_db
+from app.db import get_db, init_db
 from app.middleware.auth import register_auth
 from app.route import register_routes
 
@@ -26,7 +27,11 @@ def create_app(config=None):
 
     @app.get("/health")
     def health():
-        return jsonify({"status": "ok"})
+        try:
+            get_db().command("ping")
+        except PyMongoError:
+            return jsonify({"status": "degraded", "db": "down"}), 503
+        return jsonify({"status": "ok", "db": "ok"})
 
     @app.get("/")
     def index():
