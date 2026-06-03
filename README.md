@@ -198,6 +198,17 @@ offset and switch to keyset without changing the sort. Trade-off: keyset has no
 computed in offset mode, since counting the full collection on every keyset page
 would defeat the purpose.
 
+### References
+
+These choices follow established guidance on sorting and pagination at scale:
+
+- [MongoDB `$sort` (aggregation) — index use and the blocking in-memory sort](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
+- [Sorting ZERO/NULL values last with a precomputed flag](https://tevpro.com/how-to-sort-zero-or-null-values-last-in-mongodb/)
+- [MongoDB Community — customising how null/missing fields sort](https://www.mongodb.com/community/forums/t/new-customize-how-to-sort-documents-with-null-or-missing-fields/307938)
+- [Fast and efficient pagination in MongoDB (keyset on the sort key + `_id`)](https://www.codementor.io/@arpitbhayani/fast-and-efficient-pagination-in-mongodb-9095flbqr)
+- [MongoDB pagination, fast and consistent (offset vs keyset)](https://medium.com/swlh/mongodb-pagination-fast-consistent-ece2a97070f3)
+- [Optimizing MongoDB pagination](https://scalegrid.io/blog/mongodb-pagination/)
+
 ## Testing
 
 Integration tests run against an in-memory MongoDB (`mongomock`), so no database
