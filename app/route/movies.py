@@ -25,7 +25,12 @@ def upload_movies():
 
 @movies_bp.get("")
 def list_movies_route():
-    """List movies with pagination, filtering and sorting."""
+    """List movies with pagination, filtering and sorting.
+
+    When sorting, records with an empty sort field (for example a movie with no
+    release date) are always returned last, in both ascending and descending
+    order, so real values are never pushed off the front of the results.
+    """
     params = parse_list_params(
         request.args,
         current_app.config["DEFAULT_PAGE_SIZE"],

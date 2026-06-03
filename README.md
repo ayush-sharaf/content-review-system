@@ -132,6 +132,13 @@ GET /api/v1/movies
 | `sort_by`    | `release_date` or `rating`                           |
 | `sort_order` | `asc` or `desc`, default `asc`                        |
 
+**Sorting and empty values:** part of the source data has no `release_date`
+(and some no `rating`). When sorting by such a field, those records are always
+returned **last** — in both ascending and descending order. This is a
+deliberate choice: the records are still included in the results and in
+`total`, but real values are never pushed off the front of the list by empty
+ones.
+
 ```bash
 curl "http://localhost:5000/api/v1/movies?year=1995&language=English&sort_by=rating&sort_order=desc"
 ```

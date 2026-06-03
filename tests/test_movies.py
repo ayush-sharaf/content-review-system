@@ -72,6 +72,21 @@ def test_sort_by_release_date_ascending(client):
     assert dates == sorted(dates)
 
 
+def test_records_without_release_date_sort_last(client):
+    rows = [
+        "0,,en,Has Date,a movie,2000-01-01,0,90,Released,Has Date,5.0,10,1,18,['English']",
+        "0,,en,No Date,a movie,,0,90,Released,No Date,5.0,10,1,18,['English']",
+    ]
+    body = "\n".join([CSV_HEADER, *rows])
+    data = {"file": (io.BytesIO(body.encode("utf-8")), "movies.csv")}
+    client.post("/api/v1/movies/upload", data=data, content_type="multipart/form-data")
+
+    for order in ("asc", "desc"):
+        response = client.get(f"/api/v1/movies?sort_by=release_date&sort_order={order}")
+        titles = [item["title"] for item in response.get_json()["data"]["items"]]
+        assert titles[-1] == "No Date", f"null date should sort last for {order}"
+
+
 def test_invalid_sort_by_is_rejected(client):
     response = client.get("/api/v1/movies?sort_by=budget")
     assert response.status_code == 400
