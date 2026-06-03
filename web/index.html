@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Content Review System</title>
+  <style>
+    :root {
+      --primary: #00866c;
+      --primary-dark: #006357;
+      --text: #262626;
+      --muted: #535d7d;
+      --bg: #f4f7fa;
+      --border: #e6e9ef;
+      --row-hover: #f6fbf9;
+      --danger: #ff4d4f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 18px 28px;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    main { max-width: 1180px; margin: 24px auto; padding: 0 28px; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { margin: 0 0 14px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; color: var(--muted); }
+    input, select {
+      height: 36px;
+      padding: 0 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
+    button {
+      height: 36px;
+      padding: 0 16px;
+      border: none;
+      border-radius: 6px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button:hover { background: var(--primary-dark); }
+    button.ghost { background: #fff; color: var(--text); border: 1px solid #d9d9d9; }
+    button.ghost:hover { background: #f5f5f5; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 16px; }
+    .status.error { color: var(--danger); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; background: #fafbfc; }
+    tbody tr:hover { background: var(--row-hover); }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .title { font-weight: 500; }
+    .muted { color: #aeb4c2; }
+    .tag {
+      display: inline-block; padding: 1px 8px; margin: 1px 3px 1px 0;
+      background: #eef4f2; color: var(--primary-dark);
+      border-radius: 10px; font-size: 12px;
+    }
+    .pager { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+    .pager .info { color: var(--muted); font-size: 13px; }
+    .pager .controls { display: flex; gap: 8px; align-items: center; }
+    .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Content Review System</h1>
+    <p>Upload movie data and browse the catalogue.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Upload CSV</h2>
+      <div class="row">
+        <div class="field">
+          <label for="file">Movie CSV file</label>
+          <input type="file" id="file" accept=".csv" />
+        </div>
+        <button id="uploadBtn">Upload</button>
+      </div>
+      <div class="status" id="uploadStatus"></div>
+    </section>
+
+    <section class="card">
+      <h2>Filter &amp; sort</h2>
+      <div class="row">
+        <div class="field">
+          <label for="year">Year of release</label>
+          <input type="number" id="year" placeholder="e.g. 1995" />
+        </div>
+        <div class="field">
+          <label for="language">Language</label>
+          <input type="text" id="language" placeholder="e.g. English" />
+        </div>
+        <div class="field">
+          <label for="sortBy">Sort by</label>
+          <select id="sortBy">
+            <option value="">Default</option>
+            <option value="release_date">Release date</option>
+            <option value="rating">Rating</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sortOrder">Order</label>
+          <select id="sortOrder">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pageSize">Per page</label>
+          <select id="pageSize">
+            <option>10</option>
+            <option selected>20</option>
+            <option>50</option>
+            <option>100</option>
+          </select>
+        </div>
+        <button id="applyBtn">Apply</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Year</th>
+            <th>Release date</th>
+            <th>Languages</th>
+            <th class="num">Rating</th>
+            <th class="num">Votes</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">No movies to show.</div>
+      <div class="pager">
+        <span class="info" id="pageInfo"></span>
+        <div class="controls">
+          <button class="ghost" id="prevBtn">Previous</button>
+          <button class="ghost" id="nextBtn">Next</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API = "/api/v1/movies";
+    let page = 1;
+
+    const $ = (id) => document.getElementById(id);
+    const dash = (v) => (v === null || v === undefined || v === "" ? '<span class="muted">—</span>' : v);
+
+    function buildQuery() {
+      const params = new URLSearchParams();
+      params.set("page", page);
+      params.set("page_size", $("pageSize").value);
+      if ($("year").value.trim()) params.set("year", $("year").value.trim());
+      if ($("language").value.trim()) params.set("language", $("language").value.trim());
+      if ($("sortBy").value) {
+        params.set("sort_by", $("sortBy").value);
+        params.set("sort_order", $("sortOrder").value);
+      }
+      return params.toString();
+    }
+
+    function renderRows(items) {
+      const tbody = $("rows");
+      tbody.innerHTML = "";
+      $("empty").style.display = items.length ? "none" : "block";
+      for (const m of items) {
+        const langs = (m.languages || []).map((l) => `<span class="tag">${l}</span>`).join("") || dash(null);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="title">${dash(m.title)}</td>
+          <td>${dash(m.year)}</td>
+          <td>${dash(m.release_date)}</td>
+          <td>${langs}</td>
+          <td class="num">${dash(m.vote_average)}</td>
+          <td class="num">${dash(m.vote_count)}</td>
+          <td>${dash(m.status)}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function loadMovies() {
+      try {
+        const res = await fetch(`${API}?${buildQuery()}`);
+        const body = await res.json();
+        if (!body.success) throw new Error(body.error || "Request failed");
+        const d = body.data;
+        renderRows(d.items);
+        $("pageInfo").textContent = `Page ${d.page} of ${d.total_pages || 1} · ${d.total} movies`;
+        $("prevBtn").disabled = d.page <= 1;
+        $("nextBtn").disabled = !d.has_more;
+      } catch (err) {
+        $("pageInfo").textContent = err.message;
+      }
+    }
+
+    async function uploadFile() {
+      const input = $("file");
+      const status = $("uploadStatus");
+      status.className = "status";
+      if (!input.files.length) {
+        status.textContent = "Choose a .csv file first.";
+        return;
+      }
+      const form = new FormData();
+      form.append("file", input.files[0]);
+      status.textContent = "Uploading…";
+      $("uploadBtn").disabled = true;
+      try {
+        const res = await fetch(`${API}/upload`, { method: "POST", body: form });
+        const body = await res.json();
+        if (!body.success) throw new Error(body.error || "Upload failed");
+        status.textContent = `Inserted ${body.data.inserted}, skipped ${body.data.skipped}.`;
+        page = 1;
+        loadMovies();
+      } catch (err) {
+        status.className = "status error";
+        status.textContent = err.message;
+      } finally {
+        $("uploadBtn").disabled = false;
+      }
+    }
+
+    $("uploadBtn").addEventListener("click", uploadFile);
+    $("applyBtn").addEventListener("click", () => { page = 1; loadMovies(); });
+    $("prevBtn").addEventListener("click", () => { if (page > 1) { page--; loadMovies(); } });
+    $("nextBtn").addEventListener("click", () => { page++; loadMovies(); });
+
+    loadMovies();
+  </script>
+</body>
+</html>

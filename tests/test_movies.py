@@ -26,6 +26,12 @@ def test_health(client):
     assert response.get_json() == {"status": "ok"}
 
 
+def test_index_page_is_served(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert b"Content Review System" in response.data
+
+
 def test_upload_skips_rows_without_title(client):
     response = _upload(client)
     assert response.status_code == 201

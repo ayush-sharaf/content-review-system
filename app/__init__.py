@@ -1,5 +1,7 @@
+import os
+
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 
 from app.casbin.enforcer import build_enforcer
 from app.common.errors import register_error_handlers
@@ -7,6 +9,8 @@ from app.config import Config
 from app.db import init_db
 from app.middleware.auth import register_auth
 from app.route import register_routes
+
+WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
 
 
 def create_app(config=None):
@@ -23,5 +27,9 @@ def create_app(config=None):
     @app.get("/health")
     def health():
         return jsonify({"status": "ok"})
+
+    @app.get("/")
+    def index():
+        return send_from_directory(WEB_DIR, "index.html")
 
     return app

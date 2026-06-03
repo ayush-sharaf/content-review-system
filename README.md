@@ -12,6 +12,7 @@ file and browse it through a paginated, filterable and sortable API.
   and push empty values last; both offset and keyset (cursor) pagination are
   supported. See [Pagination, sorting and scale](#pagination-sorting-and-scale).
 - Casbin-based authorization driven by a `model.conf` / `policy.csv` pair.
+- A simple web UI (upload + list view) served by the backend at `/`.
 
 ## Architecture
 
@@ -48,6 +49,7 @@ app/
   service/     business logic (CSV import, list queries)
   config.py    environment-driven settings
   db.py        MongoDB connection and indexes
+web/           static single-page UI (upload + list view)
 tests/         integration tests (run against an in-memory MongoDB)
 postman/       Postman collection
 ```
@@ -92,6 +94,14 @@ gunicorn wsgi:app -b 0.0.0.0:5000   # production-style
 ```
 
 The service listens on `http://localhost:5000`.
+
+## Web UI
+
+A simple single-page UI is served by the backend at the root URL — open
+[http://localhost:5000/](http://localhost:5000/) in a browser. It has a CSV
+upload control and a paginated, filterable, sortable list view. Because it is
+served from the same origin as the API, it works the same whether you run via
+Docker or run MongoDB and the backend separately; no extra setup is needed.
 
 ## API
 
