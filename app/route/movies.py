@@ -1,9 +1,11 @@
-from flask import Blueprint, request
+from flask import Blueprint, current_app, request
 
 from app.common.errors import ApiError
+from app.common.params import parse_list_params
 from app.common.responses import success
 from app.db import get_db
 from app.service.csv_import import import_csv
+from app.service.movies import list_movies
 
 movies_bp = Blueprint("movies", __name__, url_prefix="/api/v1/movies")
 
@@ -19,3 +21,14 @@ def upload_movies():
 
     result = import_csv(file.stream, get_db())
     return success(result, status=201)
+
+
+@movies_bp.get("")
+def list_movies_route():
+    """List movies with pagination, filtering and sorting."""
+    params = parse_list_params(
+        request.args,
+        current_app.config["DEFAULT_PAGE_SIZE"],
+        current_app.config["MAX_PAGE_SIZE"],
+    )
+    return success(list_movies(get_db(), **params))
