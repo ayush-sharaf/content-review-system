@@ -167,7 +167,7 @@
             <option>100</option>
           </select>
         </div>
-        <button id="applyBtn">Apply</button>
+        <button id="applyBtn" disabled>Apply</button>
       </div>
     </section>
 
@@ -208,6 +208,21 @@
       return [...document.querySelectorAll("#langPanel input:checked")].map((c) => c.value);
     }
 
+    // Apply is only enabled when the filters differ from what is on screen now.
+    let appliedState;
+    function filterState() {
+      return JSON.stringify({
+        year: $("year").value.trim(),
+        languages: selectedLanguages().sort(),
+        sortBy: $("sortBy").value,
+        sortOrder: $("sortOrder").value,
+        pageSize: $("pageSize").value,
+      });
+    }
+    function refreshApplyState() {
+      $("applyBtn").disabled = filterState() === appliedState;
+    }
+
     function buildQuery() {
       const params = new URLSearchParams();
       params.set("page", page);
@@ -244,7 +259,7 @@
           const opt = document.createElement("label");
           opt.className = "ms-opt";
           opt.innerHTML = `<input type="checkbox" value="${lang}" /> ${lang}`;
-          opt.querySelector("input").addEventListener("change", updateLangLabel);
+          opt.querySelector("input").addEventListener("change", () => { updateLangLabel(); refreshApplyState(); });
           panel.appendChild(opt);
         }
       } catch (_err) {
@@ -314,9 +329,20 @@
     }
 
     $("uploadBtn").addEventListener("click", uploadFile);
-    $("applyBtn").addEventListener("click", () => { page = 1; loadMovies(); });
+    $("applyBtn").addEventListener("click", () => {
+      appliedState = filterState();
+      refreshApplyState();
+      page = 1;
+      loadMovies();
+    });
     $("prevBtn").addEventListener("click", () => { if (page > 1) { page--; loadMovies(); } });
     $("nextBtn").addEventListener("click", () => { page++; loadMovies(); });
+
+    // Re-evaluate the Apply button whenever a filter control changes.
+    $("year").addEventListener("input", refreshApplyState);
+    for (const id of ["sortBy", "sortOrder", "pageSize"]) {
+      $(id).addEventListener("change", refreshApplyState);
+    }
 
     // Toggle the language panel and close it on an outside click.
     $("langControl").addEventListener("click", (e) => {
@@ -327,6 +353,8 @@
       if (!e.target.closest("#langPanel")) $("langPanel").classList.remove("open");
     });
 
+    appliedState = filterState();
+    refreshApplyState();
     loadLanguages();
     loadMovies();
   </script>
