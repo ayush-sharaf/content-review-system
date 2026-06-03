@@ -231,3 +231,14 @@ pytest
 
 A Postman collection is available at
 `postman/content-review-system.postman_collection.json`.
+
+## AI assistance
+
+AI was used for the following parts of this project:
+
+- Writing the integration tests.
+- Writing the Postman collection.
+- Building the static web page.
+- Help with the README architecture diagram.
+- Research into the best approach for handling the data volume (sorting and
+  pagination at scale).
