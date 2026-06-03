@@ -11,6 +11,29 @@ file and browse it through a paginated, filterable and sortable API.
   and sorting by release date or rating (ascending and descending).
 - Casbin-based authorization driven by a `model.conf` / `policy.csv` pair.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    Client([Client]) -->|HTTP request| Auth{Casbin policy check}
+    Auth -->|not allowed| Forbidden([403 Forbidden])
+    Auth -->|allowed| Routes[Route layer<br/>/api/v1/movies]
+
+    Routes --> Upload[POST /upload]
+    Routes --> List[GET /]
+
+    Upload --> ImportSvc[CSV import service<br/>stream rows, batch insert]
+    List --> ListSvc[Movies service<br/>filter, sort, paginate]
+
+    ImportSvc --> Mongo[(MongoDB)]
+    ListSvc --> Mongo
+```
+
+A request first passes the casbin check in middleware, then a thin route hands
+off to a service that does the work and talks to MongoDB. Indexes on `year`,
+`original_language`, `languages`, `release_date` and `vote_average` back the
+filters and sorts.
+
 ## Project layout
 
 ```
@@ -30,7 +53,18 @@ postman/       Postman collection
 Routes stay thin and delegate to the service layer, keeping handlers easy to
 read and the business logic independently testable.
 
-## Setup
+## Quick start with Docker
+
+Brings up the API and MongoDB together with a single command:
+
+```bash
+docker compose up --build
+```
+
+The service is then available at `http://localhost:5000`. Stop it with
+`docker compose down` (add `-v` to also drop the database volume).
+
+## Manual setup
 
 Requirements: Python 3.11+ and a reachable MongoDB instance.
 
@@ -47,7 +81,7 @@ If you do not have MongoDB locally, start one with Docker:
 docker run -d -p 27017:27017 --name content-review-mongo mongo:7
 ```
 
-## Run
+Then run the app:
 
 ```bash
 flask --app wsgi run            # development
