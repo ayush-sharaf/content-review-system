@@ -78,6 +78,18 @@ def test_languages_endpoint_returns_distinct_sorted(client):
     assert languages == ["English", "Français"]
 
 
+def test_languages_facet_accumulates_across_uploads(client):
+    _upload(client)  # English, Français
+    extra = f"{CSV_HEADER}\n0,,es,Volver,a movie,2006-03-17,0,120,Released,Volver,7.5,400,1,18,['Español']"
+    client.post(
+        "/api/v1/movies/upload",
+        data={"file": (io.BytesIO(extra.encode("utf-8")), "movies.csv")},
+        content_type="multipart/form-data",
+    )
+    languages = client.get("/api/v1/movies/languages").get_json()["data"]
+    assert languages == ["English", "Español", "Français"]
+
+
 def test_zero_vote_rating_sorts_last_like_null(client):
     rows = [
         "0,,en,Rated,a movie,2001-01-01,0,90,Released,Rated,6.0,100,1,18,['English']",

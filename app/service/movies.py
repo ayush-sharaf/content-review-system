@@ -1,7 +1,7 @@
 import math
 
 from app.common.cursor import decode_cursor, encode_cursor
-from app.models.movie import COLLECTION, serialize
+from app.models.movie import COLLECTION, FACETS_COLLECTION, serialize
 
 # Maps the public sort key to the document field and its precomputed null flag.
 SORT_FIELDS = {
@@ -11,9 +11,15 @@ SORT_FIELDS = {
 
 
 def list_languages(database):
-    """Distinct languages present in the data, sorted for filter dropdowns."""
-    values = database[COLLECTION].distinct("languages")
-    return sorted(value for value in values if value)
+    """Languages available for the filter dropdown.
+
+    Served from a precomputed facet (maintained on upload) so it is an O(1)
+    read. Falls back to scanning the data only if the facet is missing.
+    """
+    facet = database[FACETS_COLLECTION].find_one({"_id": "languages"})
+    if facet and facet.get("values"):
+        return sorted(value for value in facet["values"] if value)
+    return sorted(value for value in database[COLLECTION].distinct("languages") if value)
 
 
 def list_movies(database, *, page, page_size, year, languages, sort_by, sort_order, after=None):

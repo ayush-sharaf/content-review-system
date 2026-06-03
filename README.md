@@ -242,6 +242,15 @@ A few behaviours are deliberate product choices rather than incidental:
   shows movies in that language; selecting a second narrows the list to movies
   available in *both* (their intersection), not the union. This matches how a
   content team thinks — "show me titles I can ship in English and Spanish."
+- **The language list is global and precomputed, not contextual.** The dropdown
+  shows every language in the dataset, not just those matching the current
+  filters. Contextual facets would mean a `distinct` with a filter, which the
+  query planner resolves by fetching every matching document (`FETCH + IXSCAN`)
+  — too costly at 1GB and really a search-engine job. Instead the language set
+  is maintained on upload and stored in a small `facets` document, so the
+  dropdown is a single-document (`IDHACK`) read whose cost does not grow with
+  the collection. A filter combination that matches nothing simply returns an
+  empty list.
 - **A rating only counts when the movie has votes.** Many records carry a
   `0.0` average simply because they have zero votes — that is "unrated", not a
   genuine low score. So a movie with no votes is treated the same as a missing

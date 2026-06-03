@@ -3,6 +3,10 @@ from datetime import datetime
 
 COLLECTION = "movies"
 
+# Holds precomputed lookups (e.g. the distinct language list) so read paths
+# don't recompute them on every request.
+FACETS_COLLECTION = "facets"
+
 DATE_FORMAT = "%Y-%m-%d"
 
 
